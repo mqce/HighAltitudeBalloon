@@ -8,29 +8,35 @@ https://learn.sparkfun.com/tutorials/gnss-receiver-breakout---max-m10s-qwiic-hoo
 
 - **外付けアンテナ必須**（未接続だと Fix しない）
 - 電源は **3.3V**（5V 不可）
-- ボードの UART シルクは TX→ESP32 RX、RX→ESP32 TX でクロス接続
+- 基板の I2C プルアップジャンパは初期状態でオープン。短い配線ならモジュール内蔵プルアップで足りることが多い。`chk fail` が増えるときはジャンパを閉じて 2.2 kΩ を有効にする
 
-## ESP32-C3 SuperMini ピン（UART）
+## ESP32-C3 SuperMini ピン（I2C）
 
-| シルク | GPIO | 役割 |
-|--------|------|------|
-| RX | GPIO20 | UART 受信 |
-| TX | GPIO21 | UART 送信 |
+| 役割 | GPIO |
+|------|------|
+| SDA | GPIO6 |
+| SCL | GPIO7 |
 
-USB モニタは USB CDC 経由のため、GPIO20/21 を GPS 用に使用可能。
+GPIO8 はオンボード LED、GPIO9 は BOOT のストラップピンなので使わない。USB モニタは USB CDC 経由。
 
 ## 配線
 
 | MAX-M10S ボード | ESP32-C3 SuperMini |
 |-----------------|-------------------|
-| TX | GPIO20 (RX) |
-| RX | GPIO21 (TX) |
+| SDA | GPIO6 |
+| SCL | GPIO7 |
 | 3V3 | 3.3V |
 | GND | GND |
 
-UART ボーレート: **9600**（u-blox MAX-M10S 既定）
+Qwiic ケーブルでも同じ4本（黒=GND、赤=3.3V、青=SDA、黄=SCL）。
 
-SparkFun 資料では 38400 と書かれている場合がある。`chk ok` が増えないときは `GPS_BAUD` を 38400 に変更して再試行。
+I2C アドレス: **0x42**。クロック: **100 kHz**。
+
+起動時に RAM だけへ次を設定する。Flash と BBR には書かないので、電源を切るとモジュール側の設定は元に戻る。
+
+- I2C 出力は UBX のみ
+- dynamic model は airborne <1g（2D Fix は出さない）
+- 測位周期 1 Hz の `NAV-PVT`
 
 ## ビルド・書き込み
 
@@ -41,15 +47,17 @@ pio device monitor
 
 ## ピン変更
 
-`src/main.cpp` 先頭の `GPS_RX_PIN` / `GPS_TX_PIN` / `GPS_BAUD` を編集。
+`src/main.cpp` 先頭の `GPS_SDA_PIN` / `GPS_SCL_PIN` / `GPS_I2C_HZ` を編集。プルアップを入れたあとは `GPS_I2C_HZ` を 400000 に上げられる。
 
 ## トラブルシュート
 
 | 症状 | 意味 |
 |------|------|
-| `No GPS data` | 配線・ボーレート不良 |
-| `chk ok` 増加、`Sats: 0` | **UART OK・衛星未受信**（アンテナ／見通し） |
-| `chk fail` 増加 | ノイズ・ボーレート不一致 |
+| `MAX-M10S not found` | SDA/SCL の取り違え、3.3V、アドレス 0x42 |
+| `No GNSS solution yet` | I2C は応答したが `NAV-PVT` がまだ来ない |
+| `NO FIX` かつ `Sats: 0` | **I2C OK・衛星未受信**（アンテナ／見通し） |
+| `FIX` かつ `type:3 ok:1` | 3D Fix。`hAcc` / `vAcc` は精度の目安（m） |
+| `STALE` | 新しい `NAV-PVT` が 2.5 秒以上来ていない |
 
 `Sats: 0` のとき:
 

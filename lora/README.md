@@ -27,8 +27,8 @@
 | GND | GND |
 | 3V3 | RST_M0 (Pin24) |
 | GND | MD0 (Pin1) |
-| GPIO6 (TX) | UART_RX (Pin21) |
-| GPIO7 (RX) | UART_TX (Pin22) |
+| GPIO1 (TX) | UART_RX (Pin21) |
+| GPIO0 (RX) | UART_TX (Pin22) |
 
 - **RST_M0 (Pin24)** は active-low のリセット入力。**HIGH (3V3) で通常動作**。開放のままだとリセットがかかり UART が応答しないことがある。
 - **MD0 (Pin1)** は通常動作で LOW (GND)。HIGH は Flash 書き込みモード。
@@ -83,7 +83,7 @@ pio device monitor -e ground
 
 ```text
 === balloon (TX) ===
-UART RX=7 TX=6
+UART RX=0 TX=1
 P2P configure OK
 ...
 TX: hello ... OK
@@ -93,7 +93,7 @@ TX: hello ... OK
 
 ```text
 === ground (RX) ===
-UART RX=7 TX=6
+UART RX=0 TX=1
 P2P configure OK
 Waiting for packets...
 RX text="hello" hex=68656c6c6f rssi=... snr=...

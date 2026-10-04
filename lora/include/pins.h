@@ -2,11 +2,11 @@
 
 // ESP32-C3 SuperMini UART to TLM922S (crossed)
 #ifndef LORA_RX_PIN
-#define LORA_RX_PIN 7
+#define LORA_RX_PIN 0
 #endif
 
 #ifndef LORA_TX_PIN
-#define LORA_TX_PIN 6
+#define LORA_TX_PIN 1
 #endif
 
 #ifndef P2P_FREQ_HZ
