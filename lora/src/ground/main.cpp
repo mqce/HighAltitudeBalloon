@@ -12,15 +12,16 @@ void setup() {
   delay(1500);
 
   Serial.println();
-  Serial.println("=== ground (module query) ===");
+  Serial.println("=== ground (RX) ===");
   Serial.printf("UART RX=%d TX=%d\n", LORA_RX_PIN, LORA_TX_PIN);
 
   if (!lora.begin(LORA_RX_PIN, LORA_TX_PIN)) {
     Serial.println("LoRa UART begin failed");
-    return;
+    while (true) {
+      delay(1000);
+    }
   }
 
-  // Read-only. No p2p tx / rx, so a peer is not required.
   const char* commands[] = {
       "mod get_ver",
       "mod get_hw_model",
@@ -39,6 +40,31 @@ void setup() {
   }
 
   Serial.println("query done");
+
+  if (!lora.configureP2p(P2P_FREQ_HZ, P2P_SF, P2P_BW, P2P_PWR_DBM)) {
+    Serial.println("P2P configure failed");
+    while (true) {
+      delay(1000);
+    }
+  }
+
+  Serial.println("P2P configure OK");
+  Serial.printf("freq=%lu sf=%d bw=%d pwr=%d\n",
+                static_cast<unsigned long>(P2P_FREQ_HZ), P2P_SF, P2P_BW,
+                P2P_PWR_DBM);
+  Serial.println("Waiting for packets...");
 }
 
-void loop() {}
+void loop() {
+  TlmRxPacket pkt;
+  constexpr uint16_t kRxWindowMs = 10000;
+
+  if (!lora.receive(kRxWindowMs, pkt)) {
+    Serial.println("RX timeout");
+    return;
+  }
+
+  Serial.printf("RX text=\"%s\" hex=%s rssi=%d snr=%d\n",
+                pkt.textPayload.c_str(), pkt.hexPayload.c_str(), pkt.rssi,
+                pkt.snr);
+}
