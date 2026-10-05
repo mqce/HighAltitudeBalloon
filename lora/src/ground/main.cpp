@@ -57,10 +57,11 @@ void setup() {
 
 void loop() {
   TlmRxPacket pkt;
+  String failure;
   constexpr uint16_t kRxWindowMs = 10000;
 
-  if (!lora.receive(kRxWindowMs, pkt)) {
-    Serial.println("RX timeout");
+  if (!lora.receive(kRxWindowMs, pkt, failure)) {
+    Serial.printf("RX fail: %s\n", failure.c_str());
     return;
   }
 

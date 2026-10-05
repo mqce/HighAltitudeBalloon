@@ -21,7 +21,7 @@ class Tlm922s {
   bool configureP2p(uint32_t freqHz, int sf, int bwKhz, int pwrDbm);
   bool uartLoopbackTest(int rxPin, int txPin);
   bool sendText(const char* text);
-  bool receive(uint16_t windowMs, TlmRxPacket& out);
+  bool receive(uint16_t windowMs, TlmRxPacket& out, String& failure);
 
  private:
   HardwareSerial& serial_;
@@ -29,6 +29,7 @@ class Tlm922s {
   void drainInput();
   bool waitReady(uint32_t timeoutMs = 300);
   void sendCommand(const String& cmd);
+  bool parseRxLine(const String& line, TlmRxPacket& out);
   bool execCommand(const String& cmd, const char* token, uint32_t timeoutMs,
                    String* captured = nullptr);
   bool waitForToken(const char* token, uint32_t timeoutMs, String* captured = nullptr);

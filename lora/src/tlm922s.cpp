@@ -17,6 +17,7 @@ void Tlm922s::end() {
 
 bool Tlm922s::query(const char* cmd, String& response, uint32_t timeoutMs) {
   response = "";
+  drainInput();
   sendCommand(cmd);
 
   String buf;
@@ -139,20 +140,77 @@ bool Tlm922s::sendText(const char* text) {
   return waitForToken("radio_tx_ok", 5000);
 }
 
-bool Tlm922s::receive(uint16_t windowMs, TlmRxPacket& out) {
+bool Tlm922s::receive(uint16_t windowMs, TlmRxPacket& out, String& failure) {
   out = {};
-  if (!execCommand("p2p rx " + String(windowMs), "Ok", 1500)) {
-    return false;
+  failure = "";
+
+  sendCommand("p2p rx " + String(windowMs));
+
+  String buf;
+  bool sawOk = false;
+  bool sawBusy = false;
+  const uint32_t timeoutMs = static_cast<uint32_t>(windowMs) + 2000;
+  const uint32_t start = millis();
+
+  while (millis() - start < timeoutMs) {
+    while (serial_.available()) {
+      const char c = static_cast<char>(serial_.read());
+      if (c == '\r') {
+        continue;
+      }
+      if (c != '\n') {
+        buf += c;
+        if (buf.length() > 256) {
+          buf.remove(0, buf.length() - 128);
+        }
+        continue;
+      }
+
+      String line = buf;
+      buf = "";
+      line.trim();
+      if (line.isEmpty()) {
+        continue;
+      }
+
+      if (line.indexOf("radio_rx") >= 0) {
+        if (!parseRxLine(line, out)) {
+          failure = line;
+          return false;
+        }
+        return true;
+      }
+      if (line.indexOf("radio_err_timeout") >= 0) {
+        failure = "radio_err_timeout";
+        return false;
+      }
+      if (line.indexOf("radio_err") >= 0 || line.indexOf("Invalid") >= 0) {
+        failure = line;
+        return false;
+      }
+      if (line.indexOf("busy") >= 0) {
+        sawBusy = true;
+        continue;
+      }
+      if (line.indexOf("Ok") >= 0) {
+        sawOk = true;
+      }
+    }
+    delay(1);
   }
 
-  String line;
-  const uint32_t timeoutMs = static_cast<uint32_t>(windowMs) + 1500;
-  if (!waitForToken("radio_rx", timeoutMs, &line)) {
-    return false;
+  if (sawBusy) {
+    failure = "busy";
+  } else if (!sawOk) {
+    failure = buf.isEmpty() ? "no response" : buf;
+  } else {
+    failure = "no radio_rx";
   }
+  return false;
+}
 
-  // Expected: >> radio_rx <hex> <rssi> <snr>
-  int rxPos = line.indexOf("radio_rx");
+bool Tlm922s::parseRxLine(const String& line, TlmRxPacket& out) {
+  const int rxPos = line.indexOf("radio_rx");
   if (rxPos < 0) {
     return false;
   }
@@ -160,7 +218,7 @@ bool Tlm922s::receive(uint16_t windowMs, TlmRxPacket& out) {
   String rest = line.substring(rxPos + 8);
   rest.trim();
 
-  int sp1 = rest.indexOf(' ');
+  const int sp1 = rest.indexOf(' ');
   if (sp1 < 0) {
     out.hexPayload = rest;
     out.textPayload = hexToText(rest);
@@ -173,7 +231,7 @@ bool Tlm922s::receive(uint16_t windowMs, TlmRxPacket& out) {
   String afterHex = rest.substring(sp1 + 1);
   afterHex.trim();
 
-  int sp2 = afterHex.indexOf(' ');
+  const int sp2 = afterHex.indexOf(' ');
   if (sp2 < 0) {
     out.rssi = afterHex.toInt();
     out.snr = 0;
@@ -228,9 +286,6 @@ bool Tlm922s::waitReady(uint32_t timeoutMs) {
 }
 
 void Tlm922s::sendCommand(const String& cmd) {
-  drainInput();
-  waitReady(200);
-  drainInput();
   serial_.print(cmd);
   serial_.print('\r');
   serial_.flush();
@@ -238,6 +293,7 @@ void Tlm922s::sendCommand(const String& cmd) {
 
 bool Tlm922s::execCommand(const String& cmd, const char* token, uint32_t timeoutMs,
                           String* captured) {
+  drainInput();
   sendCommand(cmd);
   if (token == nullptr || token[0] == '\0') {
     // Capture one response line / any traffic.
