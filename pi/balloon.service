@@ -1,0 +1,13 @@
+[Unit]
+Description=Balloon GNSS to LoRa transmitter
+After=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/balloon/pi
+ExecStart=/opt/balloon/venv/bin/python -u /opt/balloon/pi/balloon.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

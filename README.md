@@ -6,3 +6,4 @@
 |---|---|
 | [gps](gps/README.md) | MAX-M10S から緯度経度を取得 |
 | [lora](lora/README.md) | TLM922S-P01A の LoRa P2P 通信 |
+| [pi](pi/README.md) | Raspberry Pi Zero で GNSS を LoRa 送信 |
