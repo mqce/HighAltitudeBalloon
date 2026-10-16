@@ -1,9 +1,9 @@
 # HighAltitudeBalloon
 
-成層圏気球向けの ESP32-C3 SuperMini 実験です。
+成層圏気球向けのLoRa送受信プログラム群です。
 
 | ディレクトリ | 内容 |
 |---|---|
-| [gps](gps/README.md) | MAX-M10S から緯度経度を取得 |
-| [lora](lora/README.md) | TLM922S-P01A の LoRa P2P 通信 |
-| [pi](pi/README.md) | Raspberry Pi Zero で GNSS を LoRa 送信 |
+| [gps](gps/README.md) | MAX-M10S から緯度経度を取得 ESP32|
+| [lora](lora/README.md) | TLM922S-P01A の LoRa P2P 通信 ESP32|
+| [pi](pi/README.md) | Raspberry Pi Zero W 1.1 で GNSS を LoRa 送信 |
