@@ -1,6 +1,6 @@
 # Raspberry Pi Zero 気球送信
 
-Raspberry Pi Zero で MAX-M10S の測位結果を TLM922S-P01A から LoRa 送信する。有効な 3D Fix かつ時刻が確定しているときだけ、5 秒おきに次の 1 行を送る。
+Raspberry Pi Zero W 1.1 で MAX-M10S の測位結果を TLM922S-P01A から LoRa 送信する。SSH は `labobo@zero.local`。有効な 3D Fix かつ時刻が確定しているときだけ、5 秒おきに次の 1 行を送る。
 
 ```text
 20261009T085005Z,35.681236,139.767125,1234.5
@@ -10,11 +10,30 @@ Raspberry Pi Zero で MAX-M10S の測位結果を TLM922S-P01A から LoRa 送�
 
 地上側は [lora](../lora/README.md) の `ground` のままでよい。受信テキストをそのまま表示する。周波数、SF、帯域幅、出力を気球側と揃える。
 
+## 動作
+
+`balloon.service` を `systemctl enable` 済みなら、Raspberry Pi 起動後に自動で `balloon.py` が動き続ける。落ちた場合は約 5 秒後に再起動する（`Restart=always`）。
+
+送信は無条件ではなく、次をすべて満たすときだけ **5 秒おき** に LoRa 送信する。
+
+- 有効な 3D Fix（`fix_type == 3`）
+- GNSS 時刻が確定している
+- PVT が新鮮（2.5 秒以内）
+
+未 Fix / `STALE` / `NO TIME` のときは送信せず、状態だけをログする。屋内やアンテナ無しでは `NO FIX` のログが続く。
+
+有効化済みかは次で確認できる。
+
+```bash
+systemctl is-enabled balloon.service
+systemctl status balloon.service
+```
+
 ## ハードウェア
 
 | 項目 | 内容 |
 |------|------|
-| 計算機 | Raspberry Pi Zero / Zero W / Zero 2 W |
+| 計算機 | Raspberry Pi Zero W 1.1（`labobo@zero.local`） |
 | GNSS | スイッチサイエンス MAX-M10S（SSCI-10437） |
 | LoRa | TLM922S-P01A |
 | GNSS 接続 | I2C 100 kHz、アドレス 0x42 |
@@ -61,6 +80,8 @@ GNSS は RAM だけに設定する。I2C 出力は UBX のみ、dynamic model �
 
 ## Raspberry Pi OS の準備
 
+モニター無しで Windows から SSH で入れる手順は [SETUP.md](SETUP.md)。
+
 I2C を有効にし、シリアルはハードウェアだけ有効にしてログインシェルは無効にする。
 
 ```bash
@@ -70,7 +91,7 @@ sudo raspi-config
 - Interface Options → I2C → Enable
 - Interface Options → Serial Port → ログインシェルは No、シリアルハードウェアは Yes
 
-Zero W と Zero 2 W は、Bluetooth が使う UART と GPIO14/15 が入れ替わる。115200 bps を安定させるため、PL011 を GPIO に出す。Bookworm では `/boot/firmware/config.txt`、それ以前は `/boot/config.txt` に次を追加する。
+Zero W 1.1 は、Bluetooth が使う UART と GPIO14/15 が入れ替わる。115200 bps を安定させるため、PL011 を GPIO に出す。Bookworm では `/boot/firmware/config.txt`、それ以前は `/boot/config.txt` に次を追加する。
 
 ```text
 dtoverlay=disable-bt
