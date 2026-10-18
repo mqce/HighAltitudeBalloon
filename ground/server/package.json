@@ -1,0 +1,23 @@
+{
+  "name": "balloon-ground-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ground station: LoRa telemetry over USB serial to browser map",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "ports": "node src/index.js --list"
+  },
+  "engines": {
+    "node": ">=18.3"
+  },
+  "dependencies": {
+    "@serialport/parser-readline": "^12.0.0",
+    "express": "^5.3.0",
+    "leaflet": "^1.9.4",
+    "serialport": "^12.0.0",
+    "uplot": "^1.6.32",
+    "ws": "^8.22.0"
+  }
+}
